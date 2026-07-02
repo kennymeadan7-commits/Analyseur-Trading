@@ -1,0 +1,16 @@
+# Configuration Netlify pour le site d'analyse de marché.
+
+[build]
+  # Site statique servi depuis /public + fonctions serverless.
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  # esbuild bundle les fonctions TypeScript pour une exécution rapide.
+  node_bundler = "esbuild"
+
+# URL propre : /api/analyze -> /.netlify/functions/analyze
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
