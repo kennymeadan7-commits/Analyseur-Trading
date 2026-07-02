@@ -63,31 +63,48 @@ Copiez `.env.example` en `.env` (local) ou configurez-les dans Netlify
 
 ## Développement local
 
+Le runner local charge automatiquement un fichier `.env` (via `dotenv`).
+**Aucune variable à saisir en ligne de commande** — c'est la méthode
+recommandée, notamment sous Windows.
+
 ```bash
-# Vérification du typage strict
+# 1. Créer votre fichier de config local
+#    (Windows: copy .env.example .env  |  macOS/Linux: cp .env.example .env)
+cp .env.example .env
+
+# 2. Vérifier le typage strict
 npm run typecheck
 
-# Exécuter le flux complet en local (Binance -> indicateurs -> décision -> Telegram)
+# 3. Exécuter le flux complet (Binance -> indicateurs -> décision -> Telegram)
 npm run test:local
 
-# Exécution locale avec Netlify CLI
+# (optionnel) Exécution via Netlify CLI, puis appel manuel :
 npm run dev
-# puis appeler manuellement :
 # curl http://localhost:8888/.netlify/functions/analyze
 ```
 
 ### Géo-blocage Binance (HTTP 451)
 
 L'API principale `api.binance.com` est bloquée dans certaines régions/datacenters
-(elle renvoie alors `HTTP 451`). Utilisez le miroir public de données, qui expose
-exactement le même endpoint `/api/v3/klines` :
+(elle renvoie alors `HTTP 451`). Le projet supporte la variable `BINANCE_BASE_URL` :
+il suffit de la définir dans votre `.env` vers le miroir public de données, qui
+expose exactement le même endpoint `/api/v3/klines` :
 
-```bash
-BINANCE_BASE_URL=https://data-api.binance.vision npm run test:local
+```dotenv
+BINANCE_BASE_URL=https://data-api.binance.vision
 ```
 
-En production, définissez la même variable `BINANCE_BASE_URL` dans Netlify si les
-serveurs de votre région sont concernés.
+En production, définissez la même variable dans Netlify si les serveurs de votre
+région sont concernés.
+
+> Note Windows (cmd) : si vous préférez ne pas utiliser de `.env`, définissez la
+> variable sur une ligne séparée avant la commande — la syntaxe Linux
+> `VAR=valeur commande` **ne fonctionne pas** sous `cmd.exe` :
+>
+> ```bat
+> set BINANCE_BASE_URL=https://data-api.binance.vision
+> npm run test:local
+> ```
 
 ## Déploiement
 

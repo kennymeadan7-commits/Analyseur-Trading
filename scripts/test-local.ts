@@ -5,13 +5,17 @@
  * Usage :
  *   npm run test:local
  *
- * Astuce géo-blocage : si l'API principale renvoie HTTP 451, utilisez
- * le miroir public de données :
- *   BINANCE_BASE_URL=https://data-api.binance.vision npm run test:local
+ * Configuration : ce script charge automatiquement un fichier `.env`
+ * (voir `.env.example`). Aucune variable à saisir en ligne de commande.
+ *
+ * Astuce géo-blocage : si l'API principale renvoie HTTP 451, définissez
+ * dans votre `.env` :
+ *   BINANCE_BASE_URL=https://data-api.binance.vision
  *
  * Les secrets Telegram sont optionnels : sans eux, l'analyse s'exécute
  * mais aucune alerte n'est envoyée.
  */
+import "dotenv/config";
 import { runAnalysis } from "../netlify/functions/analyze.js";
 
 async function main(): Promise<void> {
