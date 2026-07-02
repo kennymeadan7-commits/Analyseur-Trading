@@ -1,0 +1,33 @@
+{
+  "name": "analyseur-trading",
+  "version": "1.0.0",
+  "description": "Bot serverless d'analyse de marché (BTCUSDT) déployé sur Netlify Functions avec alertes Telegram.",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "keywords": [
+    "trading",
+    "netlify",
+    "serverless",
+    "binance",
+    "telegram",
+    "technical-analysis"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/functions": "^2.8.2",
+    "axios": "^1.7.9",
+    "technicalindicators": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

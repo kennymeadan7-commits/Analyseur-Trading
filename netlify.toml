@@ -1,0 +1,14 @@
+# Configuration Netlify pour le bot d'analyse de marché serverless.
+# La fonction est planifiée directement dans le code via le helper `schedule`
+# de @netlify/functions (voir netlify/functions/analyze.ts).
+
+[build]
+  # Aucune étape de build front-end n'est nécessaire : uniquement des fonctions.
+  functions = "netlify/functions"
+
+[functions]
+  # esbuild bundle les fonctions TypeScript pour une exécution rapide.
+  node_bundler = "esbuild"
+
+# Optionnel : permet de déclencher manuellement la fonction en local
+# via `netlify dev` puis un appel HTTP sur /.netlify/functions/analyze.
