@@ -6,7 +6,7 @@
 import axios, { AxiosError } from "axios";
 import type { Candle } from "./types.js";
 
-const BINANCE_BASE_URL = "https://api.binance.com";
+const DEFAULT_BINANCE_BASE_URL = "https://api.binance.com";
 const KLINES_ENDPOINT = "/api/v3/klines";
 
 /**
@@ -56,17 +56,19 @@ function normalizeKline(raw: RawKline): Candle {
  * @param symbol   Paire à analyser (ex. "BTCUSDT").
  * @param interval Intervalle des bougies (ex. "15m", "1h", "1d").
  * @param limit    Nombre de bougies (max 1000 côté Binance).
+ * @param baseUrl  URL de base de l'API (défaut: api.binance.com).
  * @returns Liste ordonnée (ancienne -> récente) de bougies normalisées.
  */
 export async function fetchOHLCV(
   symbol: string,
   interval: string,
   limit: number,
+  baseUrl: string = DEFAULT_BINANCE_BASE_URL,
 ): Promise<Candle[]> {
   try {
     console.log(`[binance] Requête klines symbol=${symbol} interval=${interval} limit=${limit}`);
 
-    const { data } = await axios.get<RawKline[]>(`${BINANCE_BASE_URL}${KLINES_ENDPOINT}`, {
+    const { data } = await axios.get<RawKline[]>(`${baseUrl}${KLINES_ENDPOINT}`, {
       params: { symbol, interval, limit },
       // Délai court : indispensable en environnement serverless.
       timeout: 8_000,

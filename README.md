@@ -57,6 +57,7 @@ Copiez `.env.example` en `.env` (local) ou configurez-les dans Netlify
 | `CHAT_ID`            | Oui\*  | Identifiant du chat/canal destinataire                 |
 | `SYMBOL`             | Non    | Paire à analyser (défaut : `BTCUSDT`)                  |
 | `INTERVAL`           | Non    | Intervalle des bougies (défaut : `15m`)                |
+| `BINANCE_BASE_URL`   | Non    | URL de base de l'API (défaut : `https://api.binance.com`) |
 
 \* Si absents, l'analyse s'exécute mais aucune alerte n'est envoyée (log d'avertissement).
 
@@ -66,11 +67,27 @@ Copiez `.env.example` en `.env` (local) ou configurez-les dans Netlify
 # Vérification du typage strict
 npm run typecheck
 
+# Exécuter le flux complet en local (Binance -> indicateurs -> décision -> Telegram)
+npm run test:local
+
 # Exécution locale avec Netlify CLI
 npm run dev
 # puis appeler manuellement :
 # curl http://localhost:8888/.netlify/functions/analyze
 ```
+
+### Géo-blocage Binance (HTTP 451)
+
+L'API principale `api.binance.com` est bloquée dans certaines régions/datacenters
+(elle renvoie alors `HTTP 451`). Utilisez le miroir public de données, qui expose
+exactement le même endpoint `/api/v3/klines` :
+
+```bash
+BINANCE_BASE_URL=https://data-api.binance.vision npm run test:local
+```
+
+En production, définissez la même variable `BINANCE_BASE_URL` dans Netlify si les
+serveurs de votre région sont concernés.
 
 ## Déploiement
 

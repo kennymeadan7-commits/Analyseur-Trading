@@ -31,6 +31,6 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["netlify/**/*.ts"],
+  "include": ["netlify/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

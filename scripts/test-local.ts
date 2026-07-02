@@ -1,0 +1,35 @@
+/**
+ * Runner de test local : exécute le flux d'analyse complet
+ * (Binance -> indicateurs -> décision -> Telegram) hors de Netlify.
+ *
+ * Usage :
+ *   npm run test:local
+ *
+ * Astuce géo-blocage : si l'API principale renvoie HTTP 451, utilisez
+ * le miroir public de données :
+ *   BINANCE_BASE_URL=https://data-api.binance.vision npm run test:local
+ *
+ * Les secrets Telegram sont optionnels : sans eux, l'analyse s'exécute
+ * mais aucune alerte n'est envoyée.
+ */
+import { runAnalysis } from "../netlify/functions/analyze.js";
+
+async function main(): Promise<void> {
+  console.log("=== Test local de l'analyseur ===");
+  console.log(`BINANCE_BASE_URL = ${process.env["BINANCE_BASE_URL"] ?? "(défaut: api.binance.com)"}`);
+
+  try {
+    const result = await runAnalysis();
+    console.log("\n=== Résultat ===");
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(0);
+  } catch (error: unknown) {
+    console.error(
+      "\n=== Échec ===\n",
+      error instanceof Error ? error.stack ?? error.message : String(error),
+    );
+    process.exit(1);
+  }
+}
+
+void main();

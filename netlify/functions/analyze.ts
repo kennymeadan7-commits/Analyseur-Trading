@@ -26,10 +26,15 @@ const CRON_SCHEDULE = "*/15 * * * *";
  * Logique métier isolée du wrapper `schedule` pour rester testable
  * et légère en environnement serverless.
  */
-async function runAnalysis(): Promise<AnalysisResult> {
+export async function runAnalysis(): Promise<AnalysisResult> {
   const config = loadConfig();
 
-  const candles = await fetchOHLCV(config.symbol, config.interval, config.candleLimit);
+  const candles = await fetchOHLCV(
+    config.symbol,
+    config.interval,
+    config.candleLimit,
+    config.binanceBaseUrl,
+  );
   const indicators = computeIndicators(candles);
   const signal = decideSignal(indicators);
 
