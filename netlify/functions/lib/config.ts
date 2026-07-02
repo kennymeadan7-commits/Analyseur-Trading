@@ -10,17 +10,12 @@ export interface AppConfig {
   readonly candleLimit: number;
   /** URL de base de l'API Binance (configurable pour test/géo-blocage). */
   readonly binanceBaseUrl: string;
-  readonly telegram: {
-    readonly botToken: string | undefined;
-    readonly chatId: string | undefined;
-  };
 }
 
 /**
  * Construit la configuration applicative.
- * Les valeurs optionnelles disposent de valeurs par défaut sûres ;
- * les secrets Telegram restent optionnels ici et sont validés au
- * moment de l'envoi de l'alerte.
+ * Toutes les valeurs disposent de défauts sûrs et peuvent être
+ * surchargées via les variables d'environnement.
  */
 export function loadConfig(): AppConfig {
   const symbol = (process.env["SYMBOL"] ?? "BTCUSDT").toUpperCase();
@@ -37,9 +32,5 @@ export function loadConfig(): AppConfig {
     // 300 bougies : marge confortable au-dessus des 200 requises par l'EMA 200.
     candleLimit: 300,
     binanceBaseUrl,
-    telegram: {
-      botToken: process.env["TELEGRAM_BOT_TOKEN"],
-      chatId: process.env["CHAT_ID"],
-    },
   };
 }

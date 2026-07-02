@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyseur de Marché · Crypto</title>
+    <meta
+      name="description"
+      content="Analyse technique en temps réel (RSI, EMA) des paires Binance."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <style>
+      :root {
+        --bg: #0b0f1a;
+        --bg-soft: #131a2a;
+        --card: #1a2236;
+        --border: #263252;
+        --text: #e7ecf6;
+        --muted: #8a97b3;
+        --accent: #5b8cff;
+        --green: #16c784;
+        --red: #ea3943;
+        --neutral: #8a97b3;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        background: radial-gradient(1200px 600px at 50% -10%, #16203a 0%, var(--bg) 55%);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem 1rem 4rem;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      h1 {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        letter-spacing: -0.02em;
+      }
+      h1 .dot {
+        color: var(--accent);
+      }
+      .subtitle {
+        color: var(--muted);
+        margin-top: 0.5rem;
+        font-size: 0.95rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      select,
+      input {
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 0.6rem 0.8rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        min-width: 130px;
+      }
+      button {
+        align-self: flex-end;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 0.7rem 1.4rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: filter 0.15s ease, transform 0.05s ease;
+      }
+      button:hover {
+        filter: brightness(1.08);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .signal-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 1.25rem;
+      }
+      .signal-label {
+        font-size: 0.8rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .signal-value {
+        font-size: clamp(2.4rem, 8vw, 3.6rem);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin: 0.4rem 0;
+      }
+      .signal-value.ACHAT {
+        color: var(--green);
+      }
+      .signal-value.VENTE {
+        color: var(--red);
+      }
+      .signal-value.NEUTRE {
+        color: var(--neutral);
+      }
+      .signal-meta {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+      }
+      .metric {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+      }
+      .metric .k {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .metric .v {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-top: 0.35rem;
+        font-variant-numeric: tabular-nums;
+      }
+      .metric .v.up {
+        color: var(--green);
+      }
+      .metric .v.down {
+        color: var(--red);
+      }
+      .status {
+        text-align: center;
+        color: var(--muted);
+        min-height: 1.4rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+      }
+      .status.error {
+        color: var(--red);
+      }
+      .hidden {
+        display: none;
+      }
+      footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.78rem;
+        margin-top: 2.5rem;
+        line-height: 1.6;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: -2px;
+        margin-right: 6px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Analyseur de Marché<span class="dot">.</span></h1>
+        <p class="subtitle">Analyse technique (RSI · EMA 50 · EMA 200) en direct via Binance</p>
+      </header>
+
+      <form class="controls" id="form">
+        <div class="field">
+          <label for="symbol">Paire</label>
+          <select id="symbol">
+            <option value="BTCUSDT">BTC / USDT</option>
+            <option value="ETHUSDT">ETH / USDT</option>
+            <option value="BNBUSDT">BNB / USDT</option>
+            <option value="SOLUSDT">SOL / USDT</option>
+            <option value="XRPUSDT">XRP / USDT</option>
+            <option value="ADAUSDT">ADA / USDT</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="interval">Intervalle</label>
+          <select id="interval">
+            <option value="5m">5 min</option>
+            <option value="15m" selected>15 min</option>
+            <option value="1h">1 heure</option>
+            <option value="4h">4 heures</option>
+            <option value="1d">1 jour</option>
+          </select>
+        </div>
+        <button type="submit" id="btn">Analyser</button>
+      </form>
+
+      <p class="status" id="status"></p>
+
+      <section id="result" class="hidden">
+        <div class="signal-card">
+          <div class="signal-label">Signal</div>
+          <div class="signal-value" id="signal">—</div>
+          <div class="signal-meta" id="signalMeta"></div>
+        </div>
+
+        <div class="grid">
+          <div class="metric">
+            <div class="k">Prix</div>
+            <div class="v" id="price">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">RSI (14)</div>
+            <div class="v" id="rsi">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">EMA 50</div>
+            <div class="v" id="ema50">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">EMA 200</div>
+            <div class="v" id="ema200">—</div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Données : API publique Binance · Projet éducatif — ne constitue pas un conseil
+        financier.
+      </footer>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const form = $("form");
+      const btn = $("btn");
+      const statusEl = $("status");
+      const resultEl = $("result");
+
+      const fmt = (n, digits = 2) =>
+        Number(n).toLocaleString("fr-FR", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        });
+
+      async function analyze() {
+        const symbol = $("symbol").value;
+        const interval = $("interval").value;
+
+        btn.disabled = true;
+        statusEl.className = "status";
+        statusEl.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+
+        try {
+          const url = `/api/analyze?symbol=${encodeURIComponent(
+            symbol,
+          )}&interval=${encodeURIComponent(interval)}`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || `Erreur HTTP ${res.status}`);
+          }
+
+          render(data);
+          statusEl.textContent = `Mis à jour à ${new Date(
+            data.timestamp,
+          ).toLocaleTimeString("fr-FR")}`;
+        } catch (err) {
+          resultEl.classList.add("hidden");
+          statusEl.className = "status error";
+          statusEl.textContent = "Échec : " + err.message;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function render(data) {
+        const { indicators: ind, signal } = data;
+        const price = ind.lastPrice;
+
+        $("signal").textContent = signal;
+        $("signal").className = "signal-value " + signal;
+        $("signalMeta").textContent = `${data.symbol} · ${data.interval}`;
+
+        $("price").textContent = fmt(price);
+        $("rsi").textContent = fmt(ind.rsi);
+
+        const ema50 = $("ema50");
+        const ema200 = $("ema200");
+        ema50.textContent = fmt(ind.ema50);
+        ema200.textContent = fmt(ind.ema200);
+        ema50.className = "v " + (price >= ind.ema50 ? "up" : "down");
+        ema200.className = "v " + (price >= ind.ema200 ? "up" : "down");
+
+        resultEl.classList.remove("hidden");
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        analyze();
+      });
+
+      // Analyse initiale au chargement.
+      analyze();
+    </script>
+  </body>
+</html>

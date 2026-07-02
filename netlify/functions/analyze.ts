@@ -1,77 +1,82 @@
 /**
- * Fonction Netlify planifiée : bot d'analyse de marché.
+ * Fonction Netlify HTTP : endpoint d'analyse de marché.
  *
- * Flux d'exécution :
- *   1. Charge la configuration (symbole, intervalle, secrets Telegram).
+ * Appelée par le front-end (ou directement), elle :
+ *   1. Charge la configuration (symbole, intervalle).
  *   2. Récupère les bougies OHLCV depuis Binance.
  *   3. Calcule les indicateurs (RSI, EMA 50, EMA 200).
  *   4. Décide d'un signal (ACHAT / VENTE / NEUTRE).
- *   5. Notifie via Telegram si le signal est exploitable.
+ *   5. Renvoie le résultat en JSON.
  *
- * Planification : toutes les 15 minutes (cron `*​/15 * * * *`).
+ * Le symbole et l'intervalle peuvent être surchargés via la query string,
+ * ex : /.netlify/functions/analyze?symbol=ETHUSDT&interval=1h
  */
-import { schedule } from "@netlify/functions";
-import type { Handler, HandlerResponse } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { loadConfig } from "./lib/config.js";
 import { fetchOHLCV } from "./lib/binance.js";
 import { computeIndicators } from "./lib/indicators.js";
 import { decideSignal } from "./lib/decision.js";
-import { sendTelegramAlert } from "./lib/telegram.js";
 import type { AnalysisResult } from "./lib/types.js";
 
-/** Cron : exécution toutes les 15 minutes. */
-const CRON_SCHEDULE = "*/15 * * * *";
+/** En-têtes communs : JSON + CORS ouvert (API de lecture publique). */
+const JSON_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Cache-Control": "no-store",
+};
 
 /**
- * Logique métier isolée du wrapper `schedule` pour rester testable
- * et légère en environnement serverless.
+ * Logique métier isolée, réutilisable (front-end, test local, etc.).
+ *
+ * @param overrides Surcharges optionnelles (symbole, intervalle).
  */
-export async function runAnalysis(): Promise<AnalysisResult> {
+export async function runAnalysis(overrides?: {
+  symbol?: string | undefined;
+  interval?: string | undefined;
+}): Promise<AnalysisResult> {
   const config = loadConfig();
+  const symbol = (overrides?.symbol ?? config.symbol).toUpperCase();
+  const interval = overrides?.interval ?? config.interval;
 
-  const candles = await fetchOHLCV(
-    config.symbol,
-    config.interval,
-    config.candleLimit,
-    config.binanceBaseUrl,
-  );
+  const candles = await fetchOHLCV(symbol, interval, config.candleLimit, config.binanceBaseUrl);
   const indicators = computeIndicators(candles);
   const signal = decideSignal(indicators);
 
-  const result: AnalysisResult = {
-    symbol: config.symbol,
-    interval: config.interval,
+  return {
+    symbol,
+    interval,
     indicators,
     signal,
     timestamp: new Date().toISOString(),
   };
-
-  // On ne notifie que pour les signaux exploitables afin d'éviter le spam.
-  if (signal === "ACHAT" || signal === "VENTE") {
-    await sendTelegramAlert(result);
-  } else {
-    console.log("[analyze] Signal NEUTRE : aucune alerte envoyée.");
-  }
-
-  return result;
 }
 
 /**
- * Handler brut. Encapsule toute la logique dans un try/catch afin de
- * garantir une réponse HTTP propre, quel que soit le résultat.
+ * Handler HTTP. Encapsule toute la logique dans un try/catch afin de
+ * garantir une réponse propre, quel que soit le résultat.
  */
-const analyzeHandler: Handler = async (): Promise<HandlerResponse> => {
+export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   const startedAt = Date.now();
-  console.log("[analyze] Démarrage de l'analyse planifiée.");
+
+  // Pré-vol CORS.
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: JSON_HEADERS, body: "" };
+  }
+
+  console.log("[analyze] Démarrage de l'analyse.");
 
   try {
-    const result = await runAnalysis();
+    const symbol = event.queryStringParameters?.["symbol"] ?? undefined;
+    const interval = event.queryStringParameters?.["interval"] ?? undefined;
+
+    const result = await runAnalysis({ symbol, interval });
     const durationMs = Date.now() - startedAt;
     console.log(`[analyze] Analyse terminée en ${durationMs} ms — signal=${result.signal}.`);
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ ok: true, ...result }),
     };
   } catch (error: unknown) {
@@ -80,11 +85,8 @@ const analyzeHandler: Handler = async (): Promise<HandlerResponse> => {
 
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ ok: false, error: message }),
     };
   }
 };
-
-/** Export attendu par Netlify : handler planifié via cron. */
-export const handler = schedule(CRON_SCHEDULE, analyzeHandler);

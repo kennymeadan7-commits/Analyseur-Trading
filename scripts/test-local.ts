@@ -1,6 +1,6 @@
 /**
  * Runner de test local : exécute le flux d'analyse complet
- * (Binance -> indicateurs -> décision -> Telegram) hors de Netlify.
+ * (Binance -> indicateurs -> décision) hors de Netlify.
  *
  * Usage :
  *   npm run test:local
@@ -11,9 +11,6 @@
  * Astuce géo-blocage : si l'API principale renvoie HTTP 451, définissez
  * dans votre `.env` :
  *   BINANCE_BASE_URL=https://data-api.binance.vision
- *
- * Les secrets Telegram sont optionnels : sans eux, l'analyse s'exécute
- * mais aucune alerte n'est envoyée.
  */
 import "dotenv/config";
 import { runAnalysis } from "../netlify/functions/analyze.js";
